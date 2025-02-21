@@ -107,7 +107,7 @@ func (q *Queries) GetAccountForUpdate(ctx context.Context, id int64) (Account, e
 	return i, err
 }
 
-const listAccount = `-- name: ListAccount :many
+const listAccountByOwner = `-- name: ListAccountByOwner :many
 SELECT id, owner, balance, currency, created_at FROM accounts
 WHERE owner = $1
 ORDER BY id
@@ -115,19 +115,57 @@ LIMIT $2
 OFFSET $3
 `
 
-type ListAccountParams struct {
+type ListAccountByOwnerParams struct {
 	Owner  string `json:"owner"`
 	Limit  int32  `json:"limit"`
 	Offset int32  `json:"offset"`
 }
 
-func (q *Queries) ListAccount(ctx context.Context, arg ListAccountParams) ([]Account, error) {
-	rows, err := q.db.Query(ctx, listAccount, arg.Owner, arg.Limit, arg.Offset)
+func (q *Queries) ListAccountByOwner(ctx context.Context, arg ListAccountByOwnerParams) ([]Account, error) {
+	rows, err := q.db.Query(ctx, listAccountByOwner, arg.Owner, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Account
+	items := []Account{}
+	for rows.Next() {
+		var i Account
+		if err := rows.Scan(
+			&i.ID,
+			&i.Owner,
+			&i.Balance,
+			&i.Currency,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listAccounts = `-- name: ListAccounts :many
+SELECT id, owner, balance, currency, created_at FROM accounts
+ORDER BY id
+LIMIT $1
+OFFSET $2
+`
+
+type ListAccountsParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) ListAccounts(ctx context.Context, arg ListAccountsParams) ([]Account, error) {
+	rows, err := q.db.Query(ctx, listAccounts, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Account{}
 	for rows.Next() {
 		var i Account
 		if err := rows.Scan(

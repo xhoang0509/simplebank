@@ -8,12 +8,18 @@ VALUES ($1, $2, $3) RETURNING *;
 SELECT * FROM accounts
 WHERE id = $1 LIMIT 1;
 
--- name: ListAccount :many
+-- name: ListAccountByOwner :many
 SELECT * FROM accounts
 WHERE owner = $1
 ORDER BY id
 LIMIT $2
 OFFSET $3;
+
+-- name: ListAccounts :many
+SELECT * FROM accounts
+ORDER BY id
+LIMIT $1
+OFFSET $2;
 
 -- name: UpdateAccount :one
 UPDATE accounts
